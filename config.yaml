@@ -1,0 +1,14 @@
+momar:
+ password: "helloworld123"
+ uid: 2000
+ gid: 2000
+ ports:
+ - "127.0.0.1:80"
+test:
+ keys:
+ - "ssh-ed25519 AAAA... moqmar@localhost"
+port:
+ password: "helloworld123"
+ keys:
+ - "ssh-ed25519 AAAA... moqmar@localhost"
+ ports: true

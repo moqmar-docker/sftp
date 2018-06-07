@@ -1,0 +1,4 @@
+env:
+  TAG: momar/sftp
+run build the docker container: docker build --force-rm "$@" --tag "$TAG" .
+test: docker run --rm -it --network host -v "$PWD/config.yaml:/config.yaml" -v "/tmp/hostkeys:/ssh" -e "PORT=2222" "$TAG" "$@"

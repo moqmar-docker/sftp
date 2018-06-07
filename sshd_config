@@ -1,0 +1,44 @@
+Protocol 2
+
+HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_dsa_key
+HostKey /etc/ssh/ssh_host_ecdsa_key
+HostKey /etc/ssh/ssh_host_ed25519_key
+
+LoginGraceTime 120
+PermitRootLogin no
+StrictModes yes
+PermitEmptyPasswords no
+
+AuthorizedKeysFile /keys/%u/authorized_keys
+PubkeyAuthentication yes
+PasswordAuthentication no
+
+ChallengeResponseAuthentication no
+UseDNS no
+
+HostbasedAuthentication no
+IgnoreRhosts yes
+IgnoreUserKnownHosts yes
+
+PrintMotd no
+TCPKeepAlive yes
+
+StrictModes no
+
+ChrootDirectory /home/%u
+AllowAgentForwarding no
+AllowTcpForwarding no
+X11Forwarding no
+PermitTunnel no
+GatewayPorts no
+ForceCommand internal-sftp
+
+Subsystem sftp internal-sftp
+
+Match Group sftp-allowports
+  AllowTcpForwarding yes
+  PermitOpen any
+
+Match Group sftp-allowpassword
+  PasswordAuthentication yes
