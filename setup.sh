@@ -17,10 +17,10 @@ for type in rsa dsa ecdsa ed25519; do
 done
 
 # Set port and log level if given
-if [ -n "$LOG_LEVEL" ]; then
+if [[ -v LOG_LEVEL ]]; then
   sed -i '1s/^/LogLevel '"$LOG_LEVEL"'\n/' /etc/ssh/sshd_config
 fi
-if [ -n "$PORT" ]; then
+if [[ -v PORT ]]; then
   sed -i '1s/^/Port '"$PORT"'\n/' /etc/ssh/sshd_config
 fi
 
