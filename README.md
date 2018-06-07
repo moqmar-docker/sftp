@@ -6,7 +6,8 @@ This container comes with Alpine and OpenSSH and can be used for SFTP with any U
 - Secure SFTP access in a chroot environment
 - Local port forwarding (`ssh -L <localport>:<host>:<port>`) to map another host to a local port
 - Custom UID/GID for SFTP access, so you don't need to worry too much about file ownership and permissions
-- SSH logs are printed to stdout/accessible through `docker logs` with custom verbosity
+- SSH logs are available through `docker logs` with custom verbosity (`LOG_LEVEL`)
+- Custom port (`PORT`) for usage with `--network host` for more flexibility with port forwarding
 - Correct handling of the init process with [smell-baron](https://github.com/ohjames/smell-baron)
 
 ## Configuration
@@ -41,14 +42,18 @@ Yes, you can use the same UID for multiple users. It's not officially recommende
 
 - `/config.yaml` - The user configuration file (required)
 - `/host` - The SSH host keys of the container (volume recommended)
-- `/home/<user>/<user>` - The home directory of the specified user (recommended for SFTP use)
-- `/home/<user>` - The chroot environment of the specified user (NOT THE HOME DIRECTORY!)
+- `/home/<user>/<user>` - The home directory of that user (recommended for SFTP use)
+- `/home/<user>` - The chroot environment of that user (NOT THE HOME DIRECTORY!)
 - `/etc/sshd/sshd_config` - The configuration template for SSH (the default is normally fine)
 
 ## Running an example container
 
 ```
-$ docker run --rm -it --network host -v "$PWD/config.yaml:/config.yaml" -v "/tmp/hostkeys:/ssh" -e "PORT=2222" momar/sftp
+$ docker run --rm -it --network host \
+   -v "$PWD/config.yaml:/config.yaml" \
+   -v "/tmp/hostkeys:/ssh" \
+   -v "/var/www:/home/username/username" \
+   -e "PORT=2222" momar/sftp
 ```
 
 `--network host` is used in this case to make port forwarding to the docker host and to other docker containers possible.
