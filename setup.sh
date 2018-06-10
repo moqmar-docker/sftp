@@ -35,8 +35,8 @@ cp /etc/ssh/sshd_config /etc/ssh/sshd_config.build
 config=`python -c "import yaml, json, sys; sys.stdout.write(json.dumps(yaml.load(sys.stdin), sort_keys=False, indent=2))" < /config.yaml`
 
 # Add users
-addgroup -g 250521 sftp-allowpassword
-addgroup -g 250522 sftp-allowports
+awk -F: '{ print $3 }' /etc/group | grep -e "^250521\$" >/dev/null || addgroup -g 250521 sftp-allowpassword
+awk -F: '{ print $3 }' /etc/group | grep -e "^250522\$" >/dev/null || addgroup -g 250522 sftp-allowports
 for user in `jq keys <<< "$config" | sed -Ee 's/^\[$|^\]$|^ *//g' -e 's/",$/"/g'`; do
 
   user=`jq -r "." <<< "$user"`
