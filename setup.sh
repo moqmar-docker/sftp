@@ -16,40 +16,42 @@ for type in rsa dsa ecdsa ed25519; do
   fi
 done
 
+# Copy sshd_config template
+cp /etc/ssh/sshd_config /etc/ssh/sshd_config.build
+
 # Set port and log level if given
 if [[ -v LOG_LEVEL ]]; then
-  sed -i '1s/^/LogLevel '"$LOG_LEVEL"'\n/' /etc/ssh/sshd_config
+  sed -i '/^LogLevel .*$/d' /etc/ssh/sshd_config.build
+  sed -i '1s/^/LogLevel '"$LOG_LEVEL"'\n/' /etc/ssh/sshd_config.build
 fi
 if [[ -v PORT ]]; then
-  sed -i '1s/^/Port '"$PORT"'\n/' /etc/ssh/sshd_config
+  sed -i '/^Port .*$/d' /etc/ssh/sshd_config.build
+  sed -i '1s/^/Port '"$PORT"'\n/' /etc/ssh/sshd_config.build
 fi
 
 echo "##################################################"
 echo "## Setting up users                             ##"
 echo "##################################################"
 
-# Copy sshd_config template
-cp /etc/ssh/sshd_config /etc/ssh/sshd_config.build
-
 # Parse configuration file
 config=`python -c "import yaml, json, sys; sys.stdout.write(json.dumps(yaml.load(sys.stdin), sort_keys=False, indent=2))" < /config.yaml`
 
 # Add users
-awk -F: '{ print $3 }' /etc/group | grep -e "^250521\$" >/dev/null || addgroup -g 250521 sftp-allowpassword
-awk -F: '{ print $3 }' /etc/group | grep -e "^250522\$" >/dev/null || addgroup -g 250522 sftp-allowports
+awk -F: '{ print $3 }' /etc/group | grep -xF 250521 >/dev/null || addgroup -g 250521 sftp-allowpassword
+awk -F: '{ print $3 }' /etc/group | grep -xF 250522 >/dev/null || addgroup -g 250522 sftp-allowports
 for user in `jq keys <<< "$config" | sed -Ee 's/^\[$|^\]$|^ *//g' -e 's/",$/"/g'`; do
 
   user=`jq -r "." <<< "$user"`
-  echo "Creating $user..."
+  echo "Creating or updating $user..."
 
   gid=`jq -r ".$user.gid" <<< "$config" | sed 's/^null$/1000/'`
   uid=`jq -r ".$user.uid" <<< "$config" | sed 's/^null$/1000/'`
 
   # Check if the group already exists, otherwise add it
-  awk -F: '{ print $3 }' /etc/group | grep -e "^$gid\$" >/dev/null || addgroup -g "$gid" "sftp-$gid"
+  awk -F: '{ print $3 }' /etc/group | grep -xF "$gid" >/dev/null || addgroup -g "$gid" "sftp-$gid"
 
   # Create the user and its home directory
-  adduser -h "/home/$user/$user" -G "$(grep -e ":$gid:" /etc/group | awk -F: '{ print $1 }')" -D -H "$user"
+  awk -F: '{ print $1 }' /etc/passwd | grep -xF "$user" >/dev/null || adduser -h "/home/$user/$user" -G "$(grep -e ":$gid:" /etc/group | awk -F: '{ print $1 }')" -D -H "$user"
   mkdir -p "/home/$user/$user"; chmod 755 "/home/$user"; chown "$uid:$gid" "/home/$user/$user"
 
   # Add resolv.conf and hosts to chroot environment
@@ -60,14 +62,14 @@ for user in `jq keys <<< "$config" | sed -Ee 's/^\[$|^\]$|^ *//g' -e 's/",$/"/g'
   # Manually update UID to allow for multiple users with the same one
   sed -Eie 's/('"$user"':[^:]+:)[0-9]+/\1'"$uid/" /etc/passwd
 
+  # Try to unlock user
+  passwd -u "$user" || true
+
   if [ "$(jq ".$user.password" <<< "$config")" != "null" ]; then
     # Set a password
     echo "Setting password for $user"
     addgroup "$user" sftp-allowpassword
     echo "$user:$(jq -r ".$user.password" <<< "$config")" | chpasswd
-  else
-    # Unlock user
-    passwd -u "$user"
   fi
 
   # Add keys
@@ -77,6 +79,7 @@ for user in `jq keys <<< "$config" | sed -Ee 's/^\[$|^\]$|^ *//g' -e 's/",$/"/g'
       key=`jq -r "." <<< "$key"`
       echo "Adding key for $user: $key"
       mkdir -p "/keys/$user"; chmod 700 "/keys/$user"
+      echo -n > "/keys/$user/authorized_keys"
       echo $key >> "/keys/$user/authorized_keys"
       chmod 600 "/keys/$user/authorized_keys"
       chown -R "$uid:$gid" "/keys/$user"
@@ -114,7 +117,7 @@ echo
 echo "##################################################"
 echo "## Starting sshd...                             ##"
 echo "##################################################"
-touch /var/log/messages
+echo -n > /var/log/messages
 chmod +x /bin/smell-baron
 exec /bin/smell-baron \
   tail -f /var/log/messages --- \
