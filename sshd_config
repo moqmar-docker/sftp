@@ -31,7 +31,7 @@ AllowAgentForwarding no
 AllowTcpForwarding no
 X11Forwarding no
 PermitTunnel no
-GatewayPorts no
+GatewayPorts yes
 ForceCommand internal-sftp
 
 Subsystem sftp internal-sftp
