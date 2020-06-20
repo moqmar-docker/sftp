@@ -34,7 +34,7 @@ echo "## Setting up users                             ##"
 echo "##################################################"
 
 # Parse configuration file
-config=`python -c "import yaml, json, sys; sys.stdout.write(json.dumps(yaml.load(sys.stdin), sort_keys=False, indent=2))" < /config.yaml`
+config=`python3 -c "import yaml, json, sys; sys.stdout.write(json.dumps(yaml.load(sys.stdin, yaml.SafeLoader), sort_keys=False, indent=2))" < /config.yaml`
 
 # Add users
 awk -F: '{ print $3 }' /etc/group | grep -xF 250521 >/dev/null || addgroup -g 250521 sftp-allowpassword
