@@ -86,22 +86,26 @@ for user in `jq keys <<< "$config" | sed -Ee 's/^\[$|^\]$|^ *//g' -e 's/",$/"/g'
     done
   fi
 
-  # Add port forwarding
+  # Add local port forwarding
   if [ "$(jq ".$user.ports" <<< "$config")" = "true" ]; then
     echo "Enabling port forwarding for $user"
-    addgroup "$user" sftp-allowports
+    echo >> /etc/ssh/sshd_config.build
+    echo "Match User $user" >> /etc/ssh/sshd_config.build
+    echo "  AllowTcpForwarding yes" >> /etc/ssh/sshd_config.build
+    echo "  PermitOpen any" >> /etc/ssh/sshd_config.build
+    echo "  PermitListen any" >> /etc/ssh/sshd_config.build
   elif [ "$(jq ".$user.ports" <<< "$config")" = "false" ]; then
     : # Don't do anything if ports is set to false
   elif [ "$(jq ".$user.ports" <<< "$config")" != "null" ]; then
-    echo "Enabling port forwarding for $user on specific ports: "`jq -c ".$user.ports" <<< "$config"`
+    echo "Enabling local port forwarding for $user on specific ports: "`jq -c ".$user.ports" <<< "$config"`
     addgroup "$user" sftp-allowports
     echo >> /etc/ssh/sshd_config.build
     echo "Match User $user" >> /etc/ssh/sshd_config.build
-    echo -n "  PermitOpen" >> /etc/ssh/sshd_config.build
-    for port in `jq -c ".$user.ports" <<< "$config" | sed -Ee 's/^\[//g' -e 's/\]$//g' -e 's/","/" "/g'`; do
-        port=`jq -r "." <<< "$port"`
-        echo -n " $port" >> /etc/ssh/sshd_config.build
-    done
+    echo "  AllowTcpForwarding yes" >> /etc/ssh/sshd_config.build
+    echo "  PermitOpen $()" >> /etc/ssh/sshd_config.build
+    echo $(jq -r ".$user.ports"' | map(select(any(.; . | startswith("@") | not)))[] // "none"' <<< "$config" | tr '\n' ' ')
+    echo -n "  PermitListen" >> /etc/ssh/sshd_config.build
+    echo $(jq -r ".$user.ports"' | map(select(any(.; . | startswith("@"))))[] // "none"' <<< "$config" | sed 's/^@//g' | tr '\n' ' ')
     echo >> /etc/ssh/sshd_config.build
   fi
   
