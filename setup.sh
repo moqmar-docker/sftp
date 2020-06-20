@@ -102,10 +102,8 @@ for user in `jq keys <<< "$config" | sed -Ee 's/^\[$|^\]$|^ *//g' -e 's/",$/"/g'
     echo >> /etc/ssh/sshd_config.build
     echo "Match User $user" >> /etc/ssh/sshd_config.build
     echo "  AllowTcpForwarding yes" >> /etc/ssh/sshd_config.build
-    echo "  PermitOpen $()" >> /etc/ssh/sshd_config.build
-    echo $(jq -r ".$user.ports"' | map(select(any(.; . | startswith("@") | not)))[] // "none"' <<< "$config" | tr '\n' ' ')
-    echo -n "  PermitListen" >> /etc/ssh/sshd_config.build
-    echo $(jq -r ".$user.ports"' | map(select(any(.; . | startswith("@"))))[] // "none"' <<< "$config" | sed 's/^@//g' | tr '\n' ' ')
+    echo "  PermitOpen $(jq -r ".$user.ports"' | map(select(any(.; . | startswith("@") | not)))[] // "none"' <<< "$config" | tr '\n' ' ')" >> /etc/ssh/sshd_config.build
+    echo "  PermitListen $(jq -r ".$user.ports"' | map(select(any(.; . | startswith("@"))))[] // "none"' <<< "$config" | sed 's/^@//g' | tr '\n' ' ')" >> /etc/ssh/sshd_config.build
     echo >> /etc/ssh/sshd_config.build
   fi
   
